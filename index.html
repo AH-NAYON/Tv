@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>LIVE TV - মোবাইল স্ট্রিমিং</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f5fe;
+            color: #171223;
+            padding-bottom: 80px;
+        }
+
+        .app-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 16px 24px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0 8px;
+            border-bottom: 1px solid #e7e0f5;
+            margin-bottom: 16px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo i {
+            font-size: 26px;
+            color: #2e2352;
+        }
+        .logo h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2e2352, #725cb0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .badge {
+            background: #100e1c;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .view {
+            display: none;
+            animation: fade 0.25s ease;
+        }
+        .view.active-view {
+            display: block;
+        }
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(8px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        .player-card {
+            background: #0b0718;
+            border-radius: 28px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.3);
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            aspect-ratio: 16/9;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .video-placeholder {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #120d22;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            gap: 12px;
+        }
+        .player-info {
+            background: white;
+            padding: 14px 20px;
+        }
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffe6ec;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 10px;
+            font-weight: 800;
+            color: #e11d48;
+            margin-bottom: 6px;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #e11d48;
+            border-radius: 50%;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } }
+        .current-channel-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0e0a1c;
+        }
+
+        .channels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .channel-card {
+            background: white;
+            border-radius: 20px;
+            padding: 10px 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #e8e0f7;
+        }
+        .channel-card.active {
+            background: #e8defc;
+            border-color: #b59cdb;
+        }
+        .channel-icon-small {
+            width: 38px;
+            height: 38px;
+            background: #1f1935;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        .channel-card h4 {
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .channel-card span {
+            font-size: 10px;
+            color: #6b558f;
+        }
+        .live-dot-small {
+            width: 8px;
+            height: 8px;
+            background: #44b584;
+            border-radius: 50%;
+            margin-left: auto;
+        }
+        .channel-card.active .live-dot-small {
+            background: #e11d48;
+            box-shadow: 0 0 0 2px #ffcdd8;
+        }
+
+        .search-area {
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            margin-top: 8px;
+            border: 1px solid #e8e0f5;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 14px 18px 14px 44px;
+            border-radius: 60px;
+            border: 1px solid #ddd2ef;
+            font-size: 15px;
+            background: #fffbfe;
+        }
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9a86c9;
+            font-size: 16px;
+        }
+        .search-results {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .result-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #efeaff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .result-item:hover {
+            background: #faf5ff;
+            border-radius: 16px;
+        }
+        .result-item i {
+            width: 28px;
+            color: #624f8a;
+        }
+
+        .upcoming-message-card {
+            background: white;
+            border-radius: 28px;
+            padding: 48px 24px;
+            text-align: center;
+            border: 1px solid #e8e0f5;
+            margin-top: 20px;
+        }
+        .upcoming-message-card i {
+            font-size: 64px;
+            color: #f0a500;
+            margin-bottom: 20px;
+        }
+        .upcoming-message-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1e1a2f;
+        }
+        .upcoming-message-card p {
+            font-size: 16px;
+            color: #6c5a8a;
+            line-height: 1.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-card {
+            background: white;
+            width: 85%;
+            max-width: 320px;
+            border-radius: 32px;
+            padding: 24px 18px;
+            text-align: center;
+            animation: pop 0.2s ease;
+        }
+        @keyframes pop {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-card i {
+            font-size: 52px;
+            color: #f0a500;
+            margin-bottom: 12px;
+        }
+        .modal-card h3 {
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+        .modal-close {
+            margin-top: 16px;
+            background: black;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .main-footer {
+            margin-top: 36px;
+            text-align: center;
+            padding: 16px 0 10px;
+            border-top: 1px solid #e2d9f0;
+        }
+        .footer-watermark {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5c4d78;
+            margin-bottom: 10px;
+        }
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #000000;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        .contact-btn i {
+            font-size: 16px;
+        }
+        .contact-btn:hover {
+            background: #2b2350;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 6px 16px 20px;
+            border-top: 1px solid #e2d9f0;
+            z-index: 1000;
+        }
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #928bb0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn i {
+            font-size: 24px;
+        }
+        .nav-btn.active {
+            color: #000000;
+            transform: translateY(-2px);
+        }
+        .nav-btn span {
+            font-size: 10px;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .channels-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            }
+            .channel-card {
+                padding: 8px 6px;
+            }
+            .channel-icon-small {
+                width: 34px;
+                height: 34px;
+                font-size: 16px;
+            }
+            .channel-card h4 {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="app-header">
+        <div class="logo">
+            <i class="fas fa-tv"></i>
+            <h1>LIVE TV</h1>
+        </div>
+        <div class="badge"><i class="fas fa-satellite-dish"></i> 120+ চ্যানেল</div>
+    </div>
+
+    <!-- AVAILABLE CHANNELS VIEW -->
+    <div id="availableView" class="view active-view">
+        <div class="player-card">
+            <div class="video-wrapper">
+                <video id="mainVideo" controls autoplay playsinline></video>
+                <div id="videoPlaceholder" class="video-placeholder">
+                    <i class="fas fa-tv" style="font-size: 36px;"></i>
+                    <h3>একটি চ্যানেল নির্বাচন করুন</h3>
+                    <div id="loaderSpinner" class="spinner"></div>
+                </div>
+            </div>
+            <div class="player-info">
+                <div class="live-badge"><div class="live-dot"></div> লাইভ স্ট্রিমিং</div>
+                <div class="current-channel-name" id="currentChannelTitle">—</div>
+                <div style="font-size: 12px; margin-top: 4px; color:#7a64a5;" id="currentChannelCat"></div>
+            </div>
+        </div>
+        <div class="channels-grid" id="availableChannelsGrid"></div>
+    </div>
+
+    <!-- SUCH (SEARCH) VIEW -->
+    <div id="searchView" class="view">
+        <div class="search-area">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="চ্যানেলের নাম লিখুন...">
+            </div>
+            <div class="search-results" id="searchResultsList"></div>
+        </div>
+    </div>
+
+    <!-- UPCOMING CHANNELS VIEW (message only) -->
+    <div id="upcomingView" class="view">
+        <div class="upcoming-message-card">
+            <i class="fas fa-calendar-alt"></i>
+            <h2>আপকামিং চ্যানেল</h2>
+            <p>কিছু দিনের মধ্যে এই সারভার এ সব টিভি চ্যানেল পেয়ে যাবেন</p>
+            <p style="margin-top: 12px; font-size: 14px;">🚀 শীঘ্রই সম্প্রচার শুরু হবে</p>
+        </div>
+    </div>
+
+    <div class="main-footer">
+        <div class="footer-watermark">সুইট বয় নয়ন</div>
+        <a href="https://ah-nayon.github.io/web/" target="_blank" rel="noopener noreferrer" class="contact-btn">
+            <i class="fas fa-envelope"></i> যোগাযোগ
+        </a>
+    </div>
+</div>
+
+<!-- Modal for non-streamable channels -->
+<div id="comingSoonModal" class="modal">
+    <div class="modal-card">
+        <i class="fas fa-calendar-day"></i>
+        <h3>শীঘ্রই আসছে</h3>
+        <p id="modalChannelName" style="margin: 6px 0; font-weight: 600;">চ্যানেলের নাম</p>
+        <p>এই চ্যানেলটি শীঘ্রই যুক্ত হবে!</p>
+        <button class="modal-close" id="closeModalBtn">ঠিক আছে</button>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <button class="nav-btn active" data-view="available"><i class="fas fa-list-ul"></i><span>Tv Channels </span></button>
+    <button class="nav-btn" data-view="search"><i class="fas fa-search"></i><span>Find Channels</span></button>
+    <button class="nav-btn" data-view="upcoming"><i class="fas fa-calendar-alt"></i><span>Upcoming </span></button>
+</div>
+
+<script>
+    // 37 REAL CHANNELS (with working HLS streams)
+    const realChannels = [
+        {"name":"T Sports","id":"tsports","url":"http://103.59.176.72:8083/live1/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"Star Jalsha","id":"jalsha","url":"http://103.59.176.72:8083/live2/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Star Sports 1","id":"ss1","url":"http://103.59.176.72:8083/live3/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"Jalsha Movies","id":"jalshamovie","url":"http://103.59.176.72:8083/live4/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Star Sports 1 Hindi","id":"ss1hi","url":"http://103.59.176.72:8083/ss1_hindi/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"Star Sports Select 1","id":"select1","url":"http://103.59.176.72:8083/ss_select_1/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"ATN News","id":"atn","url":"http://103.59.176.72:8083/atn_news/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"DBC News","id":"dbc","url":"http://103.59.176.72:8083/dbc_news/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Ekattor TV","id":"ekattor","url":"http://103.59.176.72:8083/ekattor_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Jamuna TV","id":"jamuna","url":"http://103.59.176.72:8083/jamuna_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"News24","id":"news24","url":"http://103.59.176.72:8083/news24/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Somoy TV","id":"somoy","url":"http://103.59.176.72:8083/somoy_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Channel i","id":"channeli","url":"http://103.59.176.72:8083/channel_i/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Rtv","id":"rtv","url":"http://103.59.176.72:8083/rtv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Maasranga TV","id":"maasranga","url":"http://103.59.176.72:8083/maasranga/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Boishakhi TV","id":"boishakhi","url":"http://103.59.176.72:8083/boishakhi_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"BTV World","id":"btv","url":"http://103.59.176.72:8083/btv_world/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Duronto TV","id":"duronto","url":"http://103.59.176.72:8083/duronto_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Nagorik TV","id":"nagorik","url":"http://103.59.176.72:8083/nagorik_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Sun Bangla","id":"sunbangla","url":"http://103.59.176.72:8083/sun_bangla/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Channel 9","id":"ch9","url":"http://103.59.176.72:8083/channel_9/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Deepto TV","id":"deepto","url":"http://103.59.176.72:8083/deepto_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Desh TV","id":"desh","url":"http://103.59.176.72:8083/desh_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Ekushey TV","id":"ekushey","url":"http://103.59.176.72:8083/ekushey_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"GTV","id":"gtv","url":"http://103.59.176.72:8083/gtv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Mohona TV","id":"mohona","url":"http://103.59.176.72:8083/mohona_tv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Global HD","id":"globalhd","url":"http://103.59.176.72:8083/global_hd/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Nexus TV","id":"nexus","url":"http://103.59.176.72:8083/nexus_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"SATV","id":"satv","url":"http://103.59.176.72:8083/satv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"My TV","id":"mytv","url":"http://103.59.176.72:8083/mytv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Bijoy TV","id":"bijoy","url":"http://103.59.176.72:8083/bijoy_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Bangla Vision","id":"banglavision","url":"http://103.59.176.72:8083/banglavision/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Ananda TV","id":"ananda","url":"http://103.59.176.72:8083/ananda_tv/video.m3u8?token=123","cat":"বিনোদন"},
+        {"name":"Star Sports 3","id":"ss3","url":"http://103.59.176.72:8083/star_sports_3/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"Duronto Sports","id":"durontosport","url":"http://103.59.176.72:8083/duronto_tv/video.m3u8?token=123","cat":"স্পোর্টস"},
+        {"name":"SA TV News","id":"satvnews","url":"http://103.59.176.72:8083/satv/video.m3u8?token=123","cat":"নিউজ"},
+        {"name":"Cricket Zone HD","id":"criczone","url":"http://103.59.176.72:8083/live1/video.m3u8?token=123","cat":"স্পোর্টস"}
+    ];
+
+    // Generate additional dummy channels for search (only for coming soon)
+    const extraCount = 90;
+    const cats = ["স্পোর্টস", "নিউজ", "বিনোদন"];
+    const extraChannels = [];
+    for (let i = 1; i <= extraCount; i++) {
+        const cat = cats[i % cats.length];
+        let name = "";
+        if (cat === "স্পোর্টস") name = `স্পোর্টস চ্যানেল ${i}`;
+        else if (cat === "নিউজ") name = `নিউজ টিভি ${i}`;
+        else name = `বিনোদন এইচডি ${i}`;
+        extraChannels.push({
+            name: name,
+            id: `extra_${i}`,
+            url: "",
+            cat: cat
+        });
+    }
+    const allChannelsForSearch = [...realChannels, ...extraChannels];
+
+    function getIconClass(cat) {
+        if(cat === 'স্পোর্টস') return 'fa-futbol';
+        if(cat === 'নিউজ') return 'fa-newspaper';
+        return 'fa-film';
+    }
+
+    // ---------- AVAILABLE VIEW ----------
+    let hlsInstance = null;
+    let activeChannel = realChannels[0];
+    const video = document.getElementById('mainVideo');
+    const placeholderDiv = document.getElementById('videoPlaceholder');
+    const spinner = document.getElementById('loaderSpinner');
+    const currentTitle = document.getElementById('currentChannelTitle');
+    const currentCatSpan = document.getElementById('currentChannelCat');
+    const availableGrid = document.getElementById('availableChannelsGrid');
+
+    function playChannel(channel) {
+        if (!channel) return;
+        activeChannel = channel;
+        currentTitle.innerText = channel.name;
+        currentCatSpan.innerText = channel.cat;
+        if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
+        }
+        spinner.style.display = 'block';
+        placeholderDiv.style.display = 'flex';
+        video.pause();
+        const streamUrl = channel.url;
+        if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true });
+            hls.loadSource(streamUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                spinner.style.display = 'none';
+                placeholderDiv.style.display = 'none';
+                video.play().catch(e => console.warn);
+            });
+            hls.on(Hls.Events.ERROR, (_, data) => {
+                if (data.fatal) {
+                    spinner.style.display = 'none';
+                    placeholderDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> স্ট্রিম লোড হয়নি';
+                    placeholderDiv.style.display = 'flex';
+                }
+            });
+            hlsInstance = hls;
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = streamUrl;
+            video.addEventListener('loadedmetadata', () => {
+                spinner.style.display = 'none';
+                placeholderDiv.style.display = 'none';
+                video.play();
+            }, { once: true });
+        } else {
+            spinner.style.display = 'none';
+            placeholderDiv.innerHTML = 'HLS সমর্থিত নয়';
+            placeholderDiv.style.display = 'flex';
+        }
+        renderAvailableGrid();
+    }
+
+    function renderAvailableGrid() {
+        let html = '';
+        realChannels.forEach(ch => {
+            const isActive = (activeChannel && activeChannel.id === ch.id);
+            html += `
+                <div class="channel-card ${isActive ? 'active' : ''}" data-id="${ch.id}">
+                    <div class="channel-icon-small"><i class="fas ${getIconClass(ch.cat)}"></i></div>
+                    <div style="flex:1">
+                        <h4>${ch.name}</h4>
+                        <span>${ch.cat}</span>
+                    </div>
+                    <div class="live-dot-small"></div>
+                </div>
+            `;
+        });
+        availableGrid.innerHTML = html;
+        document.querySelectorAll('#availableChannelsGrid .channel-card').forEach(el => {
+            el.addEventListener('click', () => {
+                const chId = el.getAttribute('data-id');
+                const selected = realChannels.find(c => c.id === chId);
+                if (selected) playChannel(selected);
+            });
+        });
+    }
+
+    // ---------- SEARCH VIEW (click now plays real channels) ----------
+    const searchInput = document.getElementById('searchInput');
+    const searchResultsDiv = document.getElementById('searchResultsList');
+
+    function renderSearchResults(query) {
+        const filtered = allChannelsForSearch.filter(ch => ch.name.toLowerCase().includes(query.toLowerCase()));
+        if (filtered.length === 0) {
+            searchResultsDiv.innerHTML = '<div style="padding:20px; text-align:center; color:gray;">কোন চ্যানেল পাওয়া যায়নি</div>';
+            return;
+        }
+        let html = '';
+        filtered.forEach(ch => {
+            html += `
+                <div class="result-item" data-name="${ch.name}" data-id="${ch.id}" data-cat="${ch.cat}">
+                    <i class="fas ${getIconClass(ch.cat)}"></i>
+                    <span>${ch.name}</span>
+                    <span style="margin-left: auto; font-size:11px; color:#8a75b2;">${ch.cat}</span>
+                </div>
+            `;
+        });
+        searchResultsDiv.innerHTML = html;
+        // attach click handler for each result
+        document.querySelectorAll('#searchResultsList .result-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const channelName = el.getAttribute('data-name');
+                // check if this channel exists in realChannels (by name or id)
+                const realChannel = realChannels.find(rc => rc.name === channelName);
+                if (realChannel) {
+                    // Play the channel and switch to available view
+                    playChannel(realChannel);
+                    switchView('available');
+                } else {
+                    // Show coming soon modal for dummy channels
+                    showComingSoonModal(channelName);
+                }
+            });
+        });
+    }
+
+    searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
+    renderSearchResults(''); // show all at start
+
+    // ---------- MODAL ----------
+    const modal = document.getElementById('comingSoonModal');
+    const modalChannelSpan = document.getElementById('modalChannelName');
+    function showComingSoonModal(channelName) {
+        modalChannelSpan.innerText = channelName;
+        modal.style.display = 'flex';
+    }
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // ---------- BOTTOM NAVIGATION ----------
+    const views = {
+        available: document.getElementById('availableView'),
+        search: document.getElementById('searchView'),
+        upcoming: document.getElementById('upcomingView')
+    };
+    const navBtns = document.querySelectorAll('.nav-btn');
+    function switchView(viewName) {
+        Object.keys(views).forEach(v => {
+            views[v].classList.remove('active-view');
+        });
+        views[viewName].classList.add('active-view');
+        navBtns.forEach(btn => {
+            if (btn.getAttribute('data-view') === viewName) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        if (viewName !== 'available' && hlsInstance) {
+            video.pause();
+        } else if (viewName === 'available' && activeChannel) {
+            video.play().catch(e => console.log);
+        }
+    }
+    navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const view = btn.getAttribute('data-view');
+            switchView(view);
+        });
+    });
+
+    // Initialize
+    renderAvailableGrid();
+    playChannel(realChannels[0]);
+</script>
+</body>
+</html>
