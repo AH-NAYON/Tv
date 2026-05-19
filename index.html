@@ -3,7 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>LIVE TV - মোবাইল স্ট্রিমিং</title>
+    
+    <!-- SEO & Social Sharing Meta Tags -->
+    <title>LIVE TV - বাংলাদেশের লাইভ টিভি স্ট্রিমিং</title>
+    <meta name="description" content="দেখুন দেশের জনপ্রিয় টিভি চ্যানেলগুলোর লাইভ স্ট্রিমিং। BTV, Somoy TV, Ekattor TV, Channel 24 এবং আরও অনেক চ্যানেল এক জায়গায়।">
+    <meta name="keywords" content="live tv, bangladesh live tv, online tv, btv, somoy tv, ekattor tv, channel 24, independent tv">
+    <meta name="author" content="সুইট বয় নয়ন">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="television.png">
+    <link rel="apple-touch-icon" href="television.png">
+    
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:title" content="LIVE TV - লাইভ স্ট্রিমিং প্ল্যাটফর্ম">
+    <meta property="og:description" content="দেশের সব জনপ্রিয় টিভি চ্যানেল দেখুন একসাথে। ফ্রিতে লাইভ স্ট্রিম উপভোগ করুন।">
+    <meta property="og:image" content="https://your-domain.com/television.png"> <!-- Change to your actual image URL -->
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ah-nayon.github.io/web/">
+    <meta property="og:site_name" content="LIVE TV">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LIVE TV - লাইভ স্ট্রিমিং প্ল্যাটফর্ম">
+    <meta name="twitter:description" content="দেখুন দেশের জনপ্রিয় টিভি চ্যানেলগুলোর লাইভ স্ট্রিমিং।">
+    <meta name="twitter:image" content="https://your-domain.com/television.png">
+    
+    <!-- For Google Search rich result -->
+    <link rel="canonical" href="https://ah-nayon.github.io/web/">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -482,8 +511,7 @@
 </div>
 
 <script>
-    // ======================= WORKING REAL STREAMS (UPDATED) =======================
-    // All URLs are tested and should play HLS streams on any hosting
+    // ======================= WORKING REAL STREAMS =======================
     const realChannels = [
         {"name":"BTV","id":"btv","url":"https://owrcovcrpy.gpcdn.net/bpk-tv/1709/output/index.m3u8","cat":"বিনোদন"},
         {"name":"Somoy TV","id":"somoy","url":"https://owrcovcrpy.gpcdn.net/bpk-tv/1702/output/index.m3u8","cat":"নিউজ"},
@@ -524,7 +552,7 @@
         {"name":"SA TV News","id":"satvnews","url":"https://owrcovcrpy.gpcdn.net/bpk-tv/1720/output/index.m3u8","cat":"নিউজ"}
     ];
 
-    // Generate additional dummy channels for search (only for coming soon)
+    // Dummy channels for search
     const extraCount = 90;
     const cats = ["স্পোর্টস", "নিউজ", "বিনোদন"];
     const extraChannels = [];
@@ -534,12 +562,7 @@
         if (cat === "স্পোর্টস") name = `স্পোর্টস চ্যানেল ${i}`;
         else if (cat === "নিউজ") name = `নিউজ টিভি ${i}`;
         else name = `বিনোদন এইচডি ${i}`;
-        extraChannels.push({
-            name: name,
-            id: `extra_${i}`,
-            url: "",
-            cat: cat
-        });
+        extraChannels.push({ name: name, id: `extra_${i}`, url: "", cat: cat });
     }
     const allChannelsForSearch = [...realChannels, ...extraChannels];
 
@@ -549,7 +572,7 @@
         return 'fa-film';
     }
 
-    // ---------- AVAILABLE VIEW ----------
+    // AVAILABLE VIEW
     let hlsInstance = null;
     let activeChannel = realChannels[0];
     const video = document.getElementById('mainVideo');
@@ -564,17 +587,13 @@
         activeChannel = channel;
         currentTitle.innerText = channel.name;
         currentCatSpan.innerText = channel.cat;
-        if (hlsInstance) {
-            hlsInstance.destroy();
-            hlsInstance = null;
-        }
+        if (hlsInstance) hlsInstance.destroy();
         spinner.style.display = 'block';
         placeholderDiv.style.display = 'flex';
         video.pause();
-        const streamUrl = channel.url;
         if (Hls.isSupported()) {
             const hls = new Hls({ enableWorker: true });
-            hls.loadSource(streamUrl);
+            hls.loadSource(channel.url);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 spinner.style.display = 'none';
@@ -590,7 +609,7 @@
             });
             hlsInstance = hls;
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = streamUrl;
+            video.src = channel.url;
             video.addEventListener('loadedmetadata', () => {
                 spinner.style.display = 'none';
                 placeholderDiv.style.display = 'none';
@@ -607,84 +626,65 @@
     function renderAvailableGrid() {
         let html = '';
         realChannels.forEach(ch => {
-            const isActive = (activeChannel && activeChannel.id === ch.id);
-            html += `
-                <div class="channel-card ${isActive ? 'active' : ''}" data-id="${ch.id}">
-                    <div class="channel-icon-small"><i class="fas ${getIconClass(ch.cat)}"></i></div>
-                    <div style="flex:1">
-                        <h4>${ch.name}</h4>
-                        <span>${ch.cat}</span>
-                    </div>
-                    <div class="live-dot-small"></div>
-                </div>
-            `;
+            html += `<div class="channel-card ${activeChannel.id === ch.id ? 'active' : ''}" data-id="${ch.id}">
+                        <div class="channel-icon-small"><i class="fas ${getIconClass(ch.cat)}"></i></div>
+                        <div><h4>${ch.name}</h4><span>${ch.cat}</span></div>
+                        <div class="live-dot-small"></div>
+                    </div>`;
         });
         availableGrid.innerHTML = html;
         document.querySelectorAll('#availableChannelsGrid .channel-card').forEach(el => {
             el.addEventListener('click', () => {
-                const chId = el.getAttribute('data-id');
-                const selected = realChannels.find(c => c.id === chId);
+                const id = el.getAttribute('data-id');
+                const selected = realChannels.find(c => c.id === id);
                 if (selected) playChannel(selected);
             });
         });
     }
 
-    // ---------- SEARCH VIEW (click now plays real channels) ----------
+    // SEARCH VIEW
     const searchInput = document.getElementById('searchInput');
     const searchResultsDiv = document.getElementById('searchResultsList');
 
     function renderSearchResults(query) {
         const filtered = allChannelsForSearch.filter(ch => ch.name.toLowerCase().includes(query.toLowerCase()));
         if (filtered.length === 0) {
-            searchResultsDiv.innerHTML = '<div style="padding:20px; text-align:center; color:gray;">কোন চ্যানেল পাওয়া যায়নি</div>';
+            searchResultsDiv.innerHTML = '<div style="padding:20px;text-align:center">কোন চ্যানেল পাওয়া যায়নি</div>';
             return;
         }
         let html = '';
         filtered.forEach(ch => {
-            html += `
-                <div class="result-item" data-name="${ch.name}" data-id="${ch.id}" data-cat="${ch.cat}">
-                    <i class="fas ${getIconClass(ch.cat)}"></i>
-                    <span>${ch.name}</span>
-                    <span style="margin-left: auto; font-size:11px; color:#8a75b2;">${ch.cat}</span>
-                </div>
-            `;
+            html += `<div class="result-item" data-name="${ch.name}" data-id="${ch.id}"><i class="fas ${getIconClass(ch.cat)}"></i><span>${ch.name}</span><span style="margin-left:auto;font-size:11px;color:#8a75b2;">${ch.cat}</span></div>`;
         });
         searchResultsDiv.innerHTML = html;
-        // attach click handler for each result
         document.querySelectorAll('#searchResultsList .result-item').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const channelName = el.getAttribute('data-name');
-                // check if this channel exists in realChannels (by name)
-                const realChannel = realChannels.find(rc => rc.name === channelName);
+            el.addEventListener('click', () => {
+                const name = el.getAttribute('data-name');
+                const realChannel = realChannels.find(rc => rc.name === name);
                 if (realChannel) {
-                    // Play the channel and switch to available view
                     playChannel(realChannel);
                     switchView('available');
                 } else {
-                    // Show coming soon modal for dummy channels
-                    showComingSoonModal(channelName);
+                    showComingSoonModal(name);
                 }
             });
         });
     }
-
     searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
-    renderSearchResults(''); // show all at start
+    renderSearchResults('');
 
-    // ---------- MODAL ----------
+    // MODAL
     const modal = document.getElementById('comingSoonModal');
     const modalChannelSpan = document.getElementById('modalChannelName');
     function showComingSoonModal(channelName) {
         modalChannelSpan.innerText = channelName;
         modal.style.display = 'flex';
     }
-    function closeModal() {
-        modal.style.display = 'none';
-    }
+    function closeModal() { modal.style.display = 'none'; }
     document.getElementById('closeModalBtn').addEventListener('click', closeModal);
     window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // ---------- BOTTOM NAVIGATION ----------
+    // BOTTOM NAVIGATION
     const views = {
         available: document.getElementById('availableView'),
         search: document.getElementById('searchView'),
@@ -692,26 +692,16 @@
     };
     const navBtns = document.querySelectorAll('.nav-btn');
     function switchView(viewName) {
-        Object.keys(views).forEach(v => {
-            views[v].classList.remove('active-view');
-        });
+        Object.keys(views).forEach(v => views[v].classList.remove('active-view'));
         views[viewName].classList.add('active-view');
         navBtns.forEach(btn => {
             if (btn.getAttribute('data-view') === viewName) btn.classList.add('active');
             else btn.classList.remove('active');
         });
-        if (viewName !== 'available' && hlsInstance) {
-            video.pause();
-        } else if (viewName === 'available' && activeChannel) {
-            video.play().catch(e => console.log);
-        }
+        if (viewName !== 'available' && hlsInstance) video.pause();
+        else if (viewName === 'available' && activeChannel) video.play().catch(e => console.log);
     }
-    navBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const view = btn.getAttribute('data-view');
-            switchView(view);
-        });
-    });
+    navBtns.forEach(btn => btn.addEventListener('click', () => switchView(btn.getAttribute('data-view'))));
 
     // Initialize
     renderAvailableGrid();
