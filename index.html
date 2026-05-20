@@ -10,6 +10,13 @@
     <meta name="keywords" content="live tv, bangladesh live tv, online tv, btv, somoy tv, ekattor tv, channel 24, independent tv">
     <meta name="author" content="সুইট বয় নয়ন">
     
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2e2352">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LIVE TV">
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="television.png">
     <link rel="apple-touch-icon" href="television.png">
@@ -17,7 +24,7 @@
     <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
     <meta property="og:title" content="LIVE TV - লাইভ স্ট্রিমিং প্ল্যাটফর্ম">
     <meta property="og:description" content="দেশের সব জনপ্রিয় টিভি চ্যানেল দেখুন একসাথে। ফ্রিতে লাইভ স্ট্রিম উপভোগ করুন।">
-    <meta property="og:image" content="https://ah-nayon.github.io/Tv/television.png"> <!-- Change to your actual image URL -->
+    <meta property="og:image" content="https://ah-nayon.github.io/Tv/television.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
@@ -30,7 +37,7 @@
     <meta name="twitter:description" content="দেখুন দেশের জনপ্রিয় টিভি চ্যানেলগুলোর লাইভ স্ট্রিমিং।">
     <meta name="twitter:image" content="https://ah-nayon.github.io/Tv/television.png">
     
-    <!-- For Google Search rich result -->
+    <!-- Canonical URL -->
     <link rel="canonical" href="https://ah-nayon.github.io/web/">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -89,6 +96,25 @@
             border-radius: 40px;
             font-size: 0.7rem;
             font-weight: 600;
+        }
+
+        /* Install Button Style */
+        .install-btn {
+            background: #0c4e6e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .install-btn:hover {
+            background: #083c55;
         }
 
         .view {
@@ -441,7 +467,10 @@
             <i class="fas fa-tv"></i>
             <h1>LIVE TV</h1>
         </div>
-        <div class="badge"><i class="fas fa-satellite-dish"></i> 120+ চ্যানেল</div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="badge"><i class="fas fa-satellite-dish"></i> 120+ চ্যানেল</div>
+            <button id="installAppBtn" class="install-btn" style="display: none;"><i class="fas fa-download"></i> অ্যাপ ইনস্টল</button>
+        </div>
     </div>
 
     <!-- AVAILABLE CHANNELS VIEW -->
@@ -511,6 +540,63 @@
 </div>
 
 <script>
+    // ======================= PWA: Manifest & Service Worker =======================
+    (function() {
+        // Dynamically create manifest.json
+        const manifest = {
+            name: "LIVE TV - লাইভ স্ট্রিমিং",
+            short_name: "LIVE TV",
+            description: "বাংলাদেশের লাইভ টিভি চ্যানেল এক জায়গায়",
+            start_url: "/web/",
+            display: "standalone",
+            theme_color: "#2e2352",
+            background_color: "#f7f5fe",
+            icons: [
+                {
+                    src: "television.png",
+                    sizes: "512x512",
+                    type: "image/png",
+                    purpose: "any maskable"
+                }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: "application/json"});
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+
+        // Register Service Worker (simple offline fallback)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+            // Create a basic service worker if not exists (fallback)
+            if (!document.querySelector('#dynamic-sw')) {
+                const swCode = `self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then(resp => resp || new Response('Offline, but you can still watch live TV!')))); });`;
+                const swBlob = new Blob([swCode], {type: 'application/javascript'});
+                const swURL = URL.createObjectURL(swBlob);
+                navigator.serviceWorker.register(swURL).catch(e=>console.log);
+            }
+        }
+    })();
+
+    // Install prompt handling
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-flex';
+    });
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+        }
+    });
+
     // ======================= WORKING REAL STREAMS =======================
     const realChannels = [
         {"name":"BTV","id":"btv","url":"https://owrcovcrpy.gpcdn.net/bpk-tv/1709/output/index.m3u8","cat":"বিনোদন"},
